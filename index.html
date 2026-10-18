@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>香調風格測驗</title>
+<style>
+  :root {
+    --ink: #111;
+    --mute: #777;
+    --line: #e4e4e4;
+    --soft: #f4f4f4;
+    --bg: #fff;
+    --accent: #111;
+    --tint: #f4f4f4;
+    --fam: #d9d9d9;
+    --famOn: #555;
+  }
+  /* 依大類改變整體色調 */
+  body[data-theme="fresh"]   { --bg: #e8f2f8; --accent: #2c6e91; --tint: #d4e7f2; --fam: #b9d7e8; --famOn: #4f8fb3; --line: #c6dce9; }
+  body[data-theme="florals"] { --bg: #fbebf1; --accent: #a8436a; --tint: #f5d7e3; --fam: #ecbccf; --famOn: #c96b8f; --line: #efcddb; }
+  body[data-theme="amber"]   { --bg: #fcf0e2; --accent: #b0601c; --tint: #f6ddc2; --fam: #eec49b; --famOn: #d08a45; --line: #efd5b8; }
+  body[data-theme="woody"]   { --bg: #f1e9df; --accent: #6b4a32; --tint: #e3d5c5; --fam: #cfb9a2; --famOn: #8c6a50; --line: #dacab8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    transition: background-color .8s ease;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 32px 16px 56px; }
+  .page { display: none; }
+  .page.show { display: block; animation: fadeUp .45s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  .eyebrow { font-size: 12px; letter-spacing: .25em; text-transform: uppercase; color: var(--accent); transition: color .8s; }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: .02em; margin: 6px 0 10px; }
+  .lead { color: #444; margin-bottom: 8px; }
+  .meta { font-size: 13px; color: var(--mute); }
+
+  .btn {
+    display: inline-block; border: 1.5px solid var(--accent); background: var(--accent); color: #fff;
+    padding: 12px 28px; font-size: 15px; letter-spacing: .08em; cursor: pointer;
+    font-family: inherit; transition: background .2s, color .2s, border-color .8s;
+  }
+  .btn:hover { background: transparent; color: var(--accent); }
+  .btn.ghost { background: transparent; color: var(--accent); }
+  .btn.ghost:hover { background: var(--accent); color: #fff; }
+  .btn:disabled { opacity: .3; cursor: default; }
+
+  /* 香調輪盤 */
+  .wheel { width: 100%; max-width: 380px; display: block; margin: 28px auto; }
+  .cell { fill: var(--tint); stroke: var(--bg); stroke-width: 2; transition: fill .15s, stroke .8s; }
+  .cell.on { fill: var(--accent); }
+  .lbl { font-size: 12px; fill: #444; pointer-events: none; transition: fill .15s; }
+  .lbl.on { fill: #fff; font-weight: 700; }
+  .fam { fill: var(--fam); stroke: var(--bg); stroke-width: 2; transition: fill .6s, stroke .8s; }
+  .fam.on { fill: var(--famOn); }
+  .hub { fill: var(--bg); transition: fill .8s; }
+  .flbl { font-size: 13px; font-weight: 700; fill: #222; pointer-events: none; }
+  .flbl.en { font-size: 8.5px; letter-spacing: .15em; font-weight: 600; }
+  .flbl.on { fill: #fff; }
+  .center-txt { font-size: 12px; fill: var(--mute); letter-spacing: .1em; }
+
+  /* 測驗頁 */
+  .progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .back { background: none; border: none; font-family: inherit; font-size: 14px; color: var(--mute); cursor: pointer; padding: 4px 0; }
+  .back:hover { color: var(--ink); }
+  .back:disabled { opacity: .3; cursor: default; }
+  .count { font-size: 13px; letter-spacing: .1em; color: var(--mute); }
+  .bar { height: 3px; background: var(--line); margin-bottom: 36px; }
+  .bar > div { height: 100%; background: var(--ink); width: 0; transition: width .35s ease; }
+  .q-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .opt {
+    text-align: left; background: #fff; border: 1.5px solid var(--line); padding: 15px 18px;
+    font-size: 16px; font-family: inherit; color: var(--ink); cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s, transform .15s;
+  }
+  .opt:hover { border-color: var(--ink); transform: translateX(4px); }
+  .opt.picked { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .q-anim { animation: slideIn .35s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+
+  /* 結果頁 */
+  .result-head { text-align: center; }
+  .result-head h1 { font-size: 40px; margin: 4px 0; }
+  .result-fam { font-size: 14px; letter-spacing: .15em; color: var(--mute); }
+  .kw { margin-top: 10px; color: #333; }
+  .reveal { opacity: 0; transition: opacity .6s ease; }
+  .reveal.in { opacity: 1; }
+  .section { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 26px; }
+  .section h2 { font-size: 13px; letter-spacing: .2em; color: var(--mute); font-weight: 600; margin-bottom: 16px; }
+  .row { display: grid; grid-template-columns: 92px 1fr 46px; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 14px; }
+  .track { height: 8px; background: rgba(0,0,0,.06); }
+  .fill { height: 100%; width: 0; background: var(--accent); transition: width 1s cubic-bezier(.2,.8,.2,1); }
+  .fill.lite { opacity: .45; }
+  .pct { text-align: right; font-variant-numeric: tabular-nums; color: #444; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card { border: 1.5px solid var(--line); background: rgba(255,255,255,.55); padding: 16px; }
+  .card .k { font-size: 12px; letter-spacing: .15em; color: var(--mute); }
+  .card .v { font-size: 17px; font-weight: 700; margin-top: 4px; color: var(--accent); }
+  .ptable { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .ptable th { text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .1em; color: var(--mute); padding: 0 6px 8px; border-bottom: 1.5px solid var(--accent); }
+  .ptable td { padding: 11px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .ptable .pn { font-weight: 700; }
+  .ptable .pe { display: block; font-size: 12px; color: var(--mute); font-weight: 400; }
+  .ptable th:last-child, .ptable td:last-child { text-align: right; white-space: nowrap; }
+  .ptable .pp { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; }
+  .ptable .ml { display: block; font-size: 12px; color: var(--mute); font-weight: 400; }
+  .note { font-size: 12px; color: var(--mute); margin-top: 10px; }
+  .actions { display: flex; gap: 12px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: var(--accent); color: #fff; padding: 10px 22px; font-size: 14px; opacity: 0;
+    transition: opacity .25s, transform .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .home { text-align: center; padding-top: 12px; }
+  footer { text-align: center; font-size: 12px; color: #aaa; margin-top: 40px; }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 28px; }
+    .result-head h1 { font-size: 32px; }
+    .q-title { font-size: 21px; }
+    .row { grid-template-columns: 76px 1fr 42px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 首頁 -->
+  <section id="home" class="page show home">
+    <p class="eyebrow">Scent Finder</p>
+    <h1>香調風格測驗</h1>
+    <p class="lead">不用懂香水專業名詞，回答 8 個生活小問題，<br>找出最適合你的香調。</p>
+    <div id="homeWheel"></div>
+    <button class="btn" id="startBtn">開始測驗</button>
+    <p class="meta" style="margin-top:12px">共 8 題 · 約 2 分鐘</p>
+  </section>
+
+  <!-- 測驗頁 -->
+  <section id="quiz" class="page">
+    <div class="progress-row">
+      <button class="back" id="backBtn">← 上一題</button>
+      <span class="count" id="count">1 / 8</span>
+    </div>
+    <div class="bar"><div id="barFill"></div></div>
+    <div id="qBox">
+      <h2 class="q-title" id="qTitle"></h2>
+      <div class="options" id="options"></div>
+    </div>
+  </section>
+
+  <!-- 結果頁 -->
+  <section id="result" class="page">
+    <div class="result-head">
+      <p class="eyebrow">你的香調是</p>
+      <h1 id="rName">—</h1>
+      <p class="result-fam" id="rFam"></p>
+    </div>
+    <div id="resultWheel"></div>
+    <div class="reveal" id="revealBox">
+      <p class="kw" id="rKw" style="text-align:center"></p>
+
+      <div class="section">
+        <h2>四大類占比</h2>
+        <div id="famBars"></div>
+      </div>
+
+      <div class="section">
+        <h2>最接近你的三種香調</h2>
+        <div id="topBars"></div>
+      </div>
+
+      <div class="section">
+        <h2>推薦使用</h2>
+        <div class="cards">
+          <div class="card"><div class="k">場合</div><div class="v" id="rScene"></div></div>
+          <div class="card"><div class="k">季節</div><div class="v" id="rSeason"></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>推薦香水</h2>
+        <table class="ptable">
+          <thead><tr><th>香水名稱</th><th>品牌</th><th>參考價格</th></tr></thead>
+          <tbody id="pBody"></tbody>
+        </table>
+        <p class="note">價格為常見容量的約略專櫃價（新台幣），實際依通路、容量與時間而異，購買前請以官方資訊為準。</p>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="copyBtn">複製結果</button>
+        <button class="btn ghost" id="retryBtn">重新測驗</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>香調分類參考業界常用的香調輪盤（4 大類、13 種子香調）</footer>
+</div>
+<div class="toast" id="toast">已複製！</div>
+
+<script>
+// ===== 香調資料 =====
+const FAMS = {
+  fresh:   { name: '清新', en: 'FRESH' },
+  florals: { name: '花香', en: 'FLORALS' },
+  amber:   { name: '琥珀', en: 'AMBER' },
+  woody:   { name: '木質', en: 'WOODY' }
+};
+
+const SUBS = {
+  citrus:     { name: '柑橘調',     short: '柑橘',     en: 'Citrus',      fam: 'fresh',   kw: '檸檬、葡萄柚，明亮有活力', scene: '上課、運動後',       season: '夏' },
+  green:      { name: '綠色調',     short: '綠色',     en: 'Green',       fam: 'fresh',   kw: '青草、嫩葉，自然清新',     scene: '戶外、週末出遊',     season: '春' },
+  water:      { name: '水生調',     short: '水生',     en: 'Water',       fam: 'fresh',   kw: '海風、雨水，清涼通透',     scene: '運動、夏日出遊',     season: '夏' },
+  aromatic:   { name: '芳香調',     short: '芳香',     en: 'Aromatic',    fam: 'fresh',   kw: '薰衣草、迷迭香，清爽俐落', scene: '上班、日常',         season: '春、秋' },
+  floral:     { name: '花香調',     short: '花香',     en: 'Floral',      fam: 'florals', kw: '玫瑰、茉莉，經典花束',     scene: '約會、聚餐',         season: '春' },
+  softFloral: { name: '柔和花香調', short: '柔和花香', en: 'Soft Floral', fam: 'florals', kw: '粉感、皂感，乾淨溫柔',     scene: '上課、面試',         season: '四季皆宜' },
+  fruity:     { name: '果香調',     short: '果香',     en: 'Fruity',      fam: 'florals', kw: '水蜜桃、莓果，甜美俏皮',   scene: '出遊、聚會',         season: '春、夏' },
+  softAmber:  { name: '柔和琥珀調', short: '柔和琥珀', en: 'Soft Amber',  fam: 'amber',   kw: '香草、微甜，柔和溫暖',     scene: '晚上聚會',           season: '秋' },
+  amber:      { name: '琥珀調',     short: '琥珀',     en: 'Amber',       fam: 'amber',   kw: '香料、樹脂，濃郁有魅力',   scene: '晚宴、特別場合',     season: '冬' },
+  woodyAmber: { name: '木質琥珀調', short: '木質琥珀', en: 'Woody Amber', fam: 'amber',   kw: '木頭加樹脂，深沉神秘',     scene: '正式晚宴',           season: '冬' },
+  woods:      { name: '木質調',     short: '木質',     en: 'Woods',       fam: 'woody',   kw: '檀香、雪松，溫潤沉穩',     scene: '工作、正式場合',     season: '秋' },
+  dryWoods:   { name: '乾燥木質調', short: '乾燥木質', en: 'Dry Woods',   fam: 'woody',   kw: '煙燻、皮革，個性強烈',     scene: '夜晚、展現個人風格', season: '秋、冬' },
+  mossy:      { name: '苔蘚木質調', short: '苔蘚木質', en: 'Mossy Woods', fam: 'woody',   kw: '橡木苔、泥土，森林氣息',   scene: '戶外、文青場合',     season: '秋' }
+};
+
+// ===== 推薦香水（寫死資料）=====
+// [中文名稱, 英文名稱, 品牌, 參考價格(NT$), 容量(ml)]
+const PERFUMES = {
+  citrus: [
+    ['卡爾文克萊 CK One', 'CK One', 'Calvin Klein', 1500, 100],
+    ['青檸羅勒與柑橘', 'Lime Basil & Mandarin', 'Jo Malone', 2950, 30],
+    ['橘綠之泉', "Eau d'Orange Verte", 'Hermès', 4800, 100],
+    ['克羅尼亞', 'Colonia', 'Acqua di Parma', 6500, 100],
+    ['橙花油', 'Neroli Portofino', 'Tom Ford', 12800, 100]
+  ],
+  green: [
+    ['綠茶', 'Green Tea', 'Elizabeth Arden', 1000, 100],
+    ['綠茶', 'Eau Parfumée au Thé Vert', 'Bvlgari', 2600, 75],
+    ['尼羅河花園', 'Un Jardin sur le Nil', 'Hermès', 4900, 100],
+    ['無花果', 'Philosykos', 'Diptyque', 5600, 100],
+    ['綠色愛爾蘭花呢', 'Green Irish Tweed', 'Creed', 13000, 100]
+  ],
+  water: [
+    ['冷水', 'Cool Water', 'Davidoff', 1300, 125],
+    ['一生之水', "L'Eau d'Issey", 'Issey Miyake', 2800, 100],
+    ['寄情水', 'Acqua di Giò', 'Giorgio Armani', 3600, 100],
+    ['鼠尾草與海鹽', 'Wood Sage & Sea Salt', 'Jo Malone', 6150, 100],
+    ['銀色山泉', 'Silver Mountain Water', 'Creed', 13500, 100]
+  ],
+  aromatic: [
+    ['薰衣草淡香水', 'Lavande', "L'Occitane", 1600, 100],
+    ['曠野之心', 'Sauvage', 'Dior', 4200, 100],
+    ['蔚藍', 'Bleu de Chanel', 'Chanel', 5200, 100],
+    ['薰衣草 31', 'Lavande 31', 'Le Labo', 7600, 50],
+    ['吉普賽之水', 'Gypsy Water', 'Byredo', 9800, 100]
+  ],
+  floral: [
+    ['光韻', "Éclat d'Arpège", 'Lanvin', 1800, 100],
+    ['牡丹與胭紅麂皮', 'Peony & Blush Suede', 'Jo Malone', 2950, 30],
+    ['同名淡香精', 'Chloé EDP', 'Chloé', 4800, 75],
+    ['真我', "J'adore", 'Dior', 5600, 100],
+    ['肉慾之花', 'Carnal Flower', 'Frédéric Malle', 15000, 100]
+  ],
+  softFloral: [
+    ['純淨棉花', 'Cool Cotton', 'Clean', 2300, 60],
+    ['同名女性淡香精', 'For Her EDP', 'Narciso Rodriguez', 3800, 50],
+    ['慵懶週日', 'Lazy Sunday Morning', 'Maison Margiela', 5300, 100],
+    ['N°5 淡香精', 'N°5 EDP', 'Chanel', 6500, 100],
+    ['另一個 13', 'Another 13', 'Le Labo', 10800, 100]
+  ],
+  fruity: [
+    ['許願精靈', 'Secret Wish', 'Anna Sui', 1500, 50],
+    ['英國梨與小蒼蘭', 'English Pear & Freesia', 'Jo Malone', 2950, 30],
+    ['雛菊', 'Daisy', 'Marc Jacobs', 3600, 50],
+    ['粉紅甜蜜', 'Chance Eau Tendre', 'Chanel', 5400, 100],
+    ['拿破崙之水', 'Aventus', 'Creed', 13800, 100]
+  ],
+  softAmber: [
+    ['雲朵', 'Cloud', 'Ariana Grande', 1600, 100],
+    ['美好人生', 'La Vie est Belle', 'Lancôme', 3800, 50],
+    ['黑鴉片', 'Black Opium', 'YSL', 3900, 50],
+    ['爵士俱樂部', 'Jazz Club', 'Maison Margiela', 5300, 100],
+    ['巴卡拉 540', 'Baccarat Rouge 540', 'Maison Francis Kurkdjian', 11500, 70]
+  ],
+  amber: [
+    ['迷戀', 'Obsession', 'Calvin Klein', 1500, 100],
+    ['鴉片', 'Opium', 'YSL', 4000, 50],
+    ['一千零一夜', 'Shalimar', 'Guerlain', 4600, 50],
+    ['黑蘭花', 'Black Orchid', 'Tom Ford', 5200, 50],
+    ['菸草香草', 'Tobacco Vanille', 'Tom Ford', 11000, 50]
+  ],
+  woodyAmber: [
+    ['百萬', '1 Million', 'Paco Rabanne', 2600, 50],
+    ['非香水', 'Not A Perfume', 'Juliette Has A Gun', 3400, 100],
+    ['分子 01', 'Molecule 01', 'Escentric Molecules', 3800, 100],
+    ['壁爐火光', 'By the Fireplace', 'Maison Margiela', 5300, 100],
+    ['烏木沉香', 'Oud Wood', 'Tom Ford', 11000, 50]
+  ],
+  woods: [
+    ['自信', 'Boss Bottled', 'Hugo Boss', 2200, 100],
+    ['大地', "Terre d'Hermès", 'Hermès', 4800, 100],
+    ['譚道', 'Tam Dao', 'Diptyque', 5600, 100],
+    ['超級雪松', 'Super Cedar', 'Byredo', 6900, 50],
+    ['檀香木 33', 'Santal 33', 'Le Labo', 10500, 100]
+  ],
+  dryWoods: [
+    ['活力皮革', 'Vibrant Leather', 'Zara', 1000, 100],
+    ['華氏溫度', 'Fahrenheit', 'Dior', 3400, 100],
+    ['壁爐火光', 'By the Fireplace', 'Maison Margiela', 5300, 100],
+    ['廣藿香 24', 'Patchouli 24', 'Le Labo', 7600, 50],
+    ['托斯卡尼皮革', 'Tuscan Leather', 'Tom Ford', 11500, 50]
+  ],
+  mossy: [
+    ['泥土', 'Dirt', 'Demeter', 1000, 120],
+    ['芳香精萃', 'Aromatics Elixir', 'Clinique', 2600, 100],
+    ['英國橡樹與榛果', 'English Oak & Hazelnut', 'Jo Malone', 2950, 30],
+    ['蝴蝶夫人', 'Mitsouko', 'Guerlain', 4800, 75],
+    ['綠色愛爾蘭花呢', 'Green Irish Tweed', 'Creed', 13000, 100]
+  ]
+};
+
+function renderPerfumes(k) {
+  const rows = PERFUMES[k].slice().sort((a, b) => a[3] - b[3]); // 依價格由低到高
+  $('pBody').innerHTML = rows.map(([zh, en, brand, price, ml]) =>
+    `<tr><td><span class="pn">${zh}</span><span class="pe">${en}</span></td>
+     <td>${brand}</td>
+     <td><span class="pp">NT$${price.toLocaleString('en-US')}</span><span class="ml">${ml}ml</span></td></tr>`).join('');
+}
+
+// 輪盤上的排列順序（同一大類相鄰）
+const WHEEL_ORDER = ['woodyAmber','amber','softAmber','fruity','floral','softFloral','water','aromatic','green','citrus','mossy','woods','dryWoods'];
+
+// ===== 題目 =====
+const QUESTIONS = [
+  { q: '早上醒來，你最想聞到什麼？', o: [
+    { t: '剛切開的檸檬', s: ['citrus'] },
+    { t: '雨後的森林', s: ['mossy','green'] },
+    { t: '海邊的風', s: ['water'] },
+    { t: '盛開的玫瑰', s: ['floral'] },
+    { t: '剛烤好的香草蛋糕', s: ['softAmber'] }
+  ]},
+  { q: '理想的週末怎麼過？', o: [
+    { t: '去海邊游泳', s: ['water'] },
+    { t: '爬山走步道', s: ['mossy','green'] },
+    { t: '逛花市', s: ['floral','fruity'] },
+    { t: '窩在書店咖啡廳', s: ['woods','softAmber'] },
+    { t: '去 livehouse 或酒吧', s: ['dryWoods','amber'] }
+  ]},
+  { q: '你的穿搭風格？', o: [
+    { t: '運動休閒', s: ['citrus','water'] },
+    { t: '白襯衫，簡單乾淨', s: ['softFloral','aromatic'] },
+    { t: '甜美亮色系', s: ['fruity','floral'] },
+    { t: '深色俐落', s: ['woods','dryWoods'] },
+    { t: '大地色復古', s: ['mossy','woodyAmber'] }
+  ]},
+  { q: '你對甜食的喜愛程度？', o: [
+    { t: '不太吃', s: ['aromatic','dryWoods'] },
+    { t: '偶爾吃', s: ['softFloral','woods'] },
+    { t: '喜歡水果甜點', s: ['fruity'] },
+    { t: '無甜不歡', s: ['softAmber','amber'] }
+  ]},
+  { q: '你最喜歡的季節？', o: [
+    { t: '春天', s: ['green','floral'] },
+    { t: '夏天', s: ['citrus','water'] },
+    { t: '秋天', s: ['woods','mossy'] },
+    { t: '冬天', s: ['amber','woodyAmber'] }
+  ]},
+  { q: '你希望別人對你的第一印象是？', o: [
+    { t: '有活力', s: ['citrus','fruity'] },
+    { t: '溫柔乾淨', s: ['softFloral'] },
+    { t: '知性俐落', s: ['aromatic','woods'] },
+    { t: '神秘有魅力', s: ['amber','woodyAmber'] },
+    { t: '很有個性', s: ['dryWoods'] }
+  ]},
+  { q: '你最常點的飲料？', o: [
+    { t: '檸檬氣泡水', s: ['citrus'] },
+    { t: '抹茶或綠茶', s: ['green'] },
+    { t: '花草茶', s: ['aromatic','floral'] },
+    { t: '香草拿鐵或熱可可', s: ['softAmber'] },
+    { t: '黑咖啡', s: ['dryWoods','woodyAmber'] }
+  ]},
+  { q: '你最常在什麼場合用香水？', o: [
+    { t: '上課或日常', s: ['softFloral','aromatic'] },
+    { t: '約會', s: ['floral','fruity'] },
+    { t: '運動後', s: ['water','green'] },
+    { t: '正式場合', s: ['woods','woodyAmber'] },
+    { t: '晚上聚會', s: ['amber','softAmber'] }
+  ]}
+];
+
+// 各子香調在所有題目中「最多可以拿到的分數」（每題最多 1 分）
+const MAX_SCORE = {};
+Object.keys(SUBS).forEach(k => {
+  MAX_SCORE[k] = QUESTIONS.filter(q => q.o.some(o => o.s.includes(k))).length;
+});
+
+// ===== 狀態 =====
+let current = 0;
+let answers = new Array(QUESTIONS.length).fill(null);
+let homeTimer = null;
+let locked = false;
+
+const $ = id => document.getElementById(id);
+
+// ===== 畫香調輪盤（SVG）=====
+function sectorPath(r1, r2, a1, a2) {
+  const rad = d => d * Math.PI / 180;
+  const pt = (r, a) => [(r * Math.cos(rad(a))).toFixed(2), (r * Math.sin(rad(a))).toFixed(2)];
+  const large = (a2 - a1) > 180 ? 1 : 0;
+  const [x1, y1] = pt(r2, a1), [x2, y2] = pt(r2, a2), [x3, y3] = pt(r1, a2), [x4, y4] = pt(r1, a1);
+  return `M${x1} ${y1} A${r2} ${r2} 0 ${large} 1 ${x2} ${y2} L${x3} ${y3} A${r1} ${r1} 0 ${large} 0 ${x4} ${y4}Z`;
+}
+function polar(r, a) {
+  const rad = a * Math.PI / 180;
+  return [(r * Math.cos(rad)).toFixed(2), (r * Math.sin(rad)).toFixed(2)];
+}
+
+function buildWheel(centerText) {
+  const n = WHEEL_ORDER.length;
+  const step = 360 / n;
+  const start = -90 - 1.5 * step; // 讓「琥珀調」位於正上方
+  let svg = `<svg class="wheel" viewBox="-200 -200 400 400" role="img" aria-label="香調輪盤">`;
+
+  // 外圈：13 種子香調
+  WHEEL_ORDER.forEach((key, i) => {
+    const a1 = start + i * step, a2 = a1 + step;
+    const [lx, ly] = polar(150, (a1 + a2) / 2);
+    svg += `<path class="cell" data-i="${i}" d="${sectorPath(112, 192, a1, a2)}"/>`;
+    svg += `<text class="lbl" data-i="${i}" x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central">${SUBS[key].short}</text>`;
+  });
+
+  // 內圈：4 大類
+  Object.keys(FAMS).forEach(fk => {
+    const idx = WHEEL_ORDER.map((k, i) => SUBS[k].fam === fk ? i : -1).filter(i => i >= 0);
+    const a1 = start + idx[0] * step, a2 = start + (idx[idx.length - 1] + 1) * step;
+    const mid = (a1 + a2) / 2;
+    const [cx, cy] = polar(86, mid);
+    svg += `<path class="fam" data-f="${fk}" d="${sectorPath(62, 110, a1, a2)}"/>`;
+    svg += `<text class="flbl" data-f="${fk}" x="${cx}" y="${(+cy - 5).toFixed(2)}" text-anchor="middle" dominant-baseline="central">${FAMS[fk].name}</text>`;
+    svg += `<text class="flbl en" data-f="${fk}" x="${cx}" y="${(+cy + 10).toFixed(2)}" text-anchor="middle" dominant-baseline="central">${FAMS[fk].en}</text>`;
+  });
+
+  svg += `<circle class="hub" r="60"/>`;
+  svg += `<text class="center-txt" x="0" y="0" text-anchor="middle" dominant-baseline="central">${centerText}</text>`;
+  svg += `</svg>`;
+  return svg;
+}
+
+function lightCell(box, i) {
+  box.querySelectorAll('.cell, .lbl').forEach(el => el.classList.toggle('on', +el.dataset.i === i));
+}
+function lightFam(box, fk) {
+  box.querySelectorAll('.fam, .flbl').forEach(el => el.classList.toggle('on', el.dataset.f === fk));
+}
+
+// 首頁：輪盤一格一格亮起
+function startHomeWheel() {
+  const box = $('homeWheel');
+  box.innerHTML = buildWheel('SCENT');
+  let i = 0;
+  clearInterval(homeTimer);
+  homeTimer = setInterval(() => {
+    lightCell(box, i);
+    lightFam(box, SUBS[WHEEL_ORDER[i]].fam);
+    setTheme(SUBS[WHEEL_ORDER[i]].fam);
+    i = (i + 1) % WHEEL_ORDER.length;
+  }, 650);
+}
+
+// ===== 子香調的色彩印象（結果頁使用）=====
+// [色名, 背景, 主色, 外圈底色, 內圈底色, 內圈亮色, 分隔線]
+const SUB_THEMES = {
+  citrus:     ['檸檬黃',   '#fdf7dc', '#957300', '#f8ebb0', '#f0d97a', '#d4b11c', '#efe2a8'],
+  green:      ['嫩葉綠',   '#eef6e6', '#4f7d2f', '#dcebcc', '#c3dcab', '#79a557', '#d3e4c2'],
+  water:      ['海水藍',   '#e6f3f7', '#1f7891', '#cfe8f0', '#aed7e4', '#4aa0ba', '#c5e1ea'],
+  aromatic:   ['薰衣草紫', '#f1eef7', '#6a5a9a', '#e0daee', '#cbc1e2', '#8d7fbd', '#d9d2e9'],
+  floral:     ['玫瑰粉',   '#fbe9ee', '#b03a5b', '#f5d2dc', '#eeb4c4', '#cf6585', '#f0c9d4'],
+  softFloral: ['霧粉',     '#f7f1f4', '#94637a', '#ede1e7', '#dfcad5', '#b88ea2', '#e8dbe2'],
+  fruity:     ['蜜桃橘',   '#fdeee6', '#c0553a', '#f9d9ca', '#f4bfa6', '#e0805f', '#f4d3c4'],
+  softAmber:  ['香草奶油', '#fbf3e4', '#9c6a26', '#f3e3c4', '#e9cfa0', '#c9974f', '#ede0c4'],
+  amber:      ['琥珀橘',   '#fcecd9', '#b5541a', '#f6d4b0', '#efb784', '#d47a3a', '#f0cfae'],
+  woodyAmber: ['紅棕',     '#f5e6dc', '#8a3b1e', '#ead0bf', '#dcb29a', '#a8603e', '#e5cbbb'],
+  woods:      ['檀木棕',   '#f2e9df', '#6e4b30', '#e4d4c3', '#d1b99f', '#8f6b4d', '#ddcbb8'],
+  dryWoods:   ['煙燻灰',   '#ecebe8', '#4a443e', '#dcd9d4', '#c4beb6', '#6f675e', '#d6d2cc'],
+  mossy:      ['苔蘚綠',   '#ebefe4', '#4f6138', '#d8e0cb', '#bfcbab', '#758a5a', '#d2dac4']
+};
+
+function setSubTheme(k) {
+  delete document.body.dataset.theme;
+  const [, bg, accent, tint, fam, famOn, line] = SUB_THEMES[k];
+  const st = document.body.style;
+  st.setProperty('--bg', bg);
+  st.setProperty('--accent', accent);
+  st.setProperty('--tint', tint);
+  st.setProperty('--fam', fam);
+  st.setProperty('--famOn', famOn);
+  st.setProperty('--line', line);
+}
+
+// ===== 主題色切換（首頁依大類）=====
+function setTheme(fk) {
+  document.body.style.cssText = '';
+  if (fk) document.body.dataset.theme = fk;
+  else delete document.body.dataset.theme;
+}
+
+// ===== 頁面切換 =====
+function show(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
+  $(id).classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== 測驗 =====
+function renderQuestion() {
+  const q = QUESTIONS[current];
+  $('count').textContent = `${current + 1} / ${QUESTIONS.length}`;
+  $('barFill').style.width = `${(current / QUESTIONS.length) * 100}%`;
+  $('backBtn').disabled = false;
+  $('backBtn').textContent = current === 0 ? '← 回首頁' : '← 上一題';
+  $('qTitle').textContent = q.q;
+
+  const box = $('options');
+  box.innerHTML = '';
+  q.o.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt' + (answers[current] === i ? ' picked' : '');
+    b.textContent = opt.t;
+    b.addEventListener('click', () => pick(i, b));
+    box.appendChild(b);
+  });
+
+  const qBox = $('qBox');
+  qBox.classList.remove('q-anim');
+  void qBox.offsetWidth; // 重新觸發動畫
+  qBox.classList.add('q-anim');
+  locked = false;
+}
+
+function pick(i, btn) {
+  if (locked) return;
+  locked = true;
+  answers[current] = i;
+  document.querySelectorAll('.opt').forEach(b => b.classList.remove('picked'));
+  btn.classList.add('picked');
+  setTimeout(() => {
+    if (current < QUESTIONS.length - 1) {
+      current++;
+      renderQuestion();
+    } else {
+      $('barFill').style.width = '100%';
+      setTimeout(showResult, 250);
+    }
+  }, 280);
+}
+
+// ===== 計分 =====
+function calcScores() {
+  const keys = Object.keys(SUBS);
+  const raw = {}, solo = {};
+  keys.forEach(k => { raw[k] = 0; solo[k] = 0; });
+  answers.forEach((a, qi) => {
+    if (a === null) return;
+    const tags = QUESTIONS[qi].o[a].s;
+    tags.forEach(k => raw[k]++);
+    if (tags.length === 1) solo[tags[0]]++; // 只對應一種香調的選項，代表更明確的偏好
+  });
+
+  // 子香調比例 = 得分 / 可得最高分
+  const ratio = {};
+  keys.forEach(k => ratio[k] = MAX_SCORE[k] ? raw[k] / MAX_SCORE[k] : 0);
+
+  // 大類符合度 = 該大類子香調比例的平均
+  const fam = {};
+  Object.keys(FAMS).forEach(fk => {
+    const members = keys.filter(k => SUBS[k].fam === fk);
+    fam[fk] = members.reduce((s, k) => s + ratio[k], 0) / members.length;
+  });
+
+  // 大類占比：換算成加總 100%（最大餘數法，避免四捨五入後不是 100）
+  const sum = Object.values(fam).reduce((a, b) => a + b, 0) || 1;
+  const exact = Object.keys(FAMS).map(fk => ({ fk, v: fam[fk] / sum * 100 }));
+  exact.forEach(e => e.n = Math.floor(e.v));
+  let left = 100 - exact.reduce((a, e) => a + e.n, 0);
+  exact.slice().sort((a, b) => (b.v - b.n) - (a.v - a.n)).forEach(e => { if (left > 0) { e.n++; left--; } });
+  const famShare = {};
+  exact.forEach(e => famShare[e.fk] = e.n);
+
+  // 排名規則：
+  // 1. 子香調比例高者優先
+  // 2. 平手 → 所屬大類符合度高者優先
+  // 3. 再平手 → 「只對應這種香調」的選項選得多者優先
+  // 4. 再平手 → 原始分數高者優先
+  const ranked = keys.sort((a, b) =>
+    (ratio[b] - ratio[a]) ||
+    (fam[SUBS[b].fam] - fam[SUBS[a].fam]) ||
+    (solo[b] - solo[a]) ||
+    (raw[b] - raw[a]));
+
+  return { ratio, ranked, famShare };
+}
+
+// ===== 結果頁 =====
+let lastResult = null;
+
+function showResult() {
+  const { ratio, ranked, famShare } = calcScores();
+  const topKey = ranked[0];
+  const top = SUBS[topKey];
+  lastResult = { ratio, ranked, famShare, topKey };
+
+  setTheme(null);
+  show('result');
+  $('rName').textContent = '…';
+  $('rFam').textContent = '轉動香調輪盤中';
+  $('revealBox').classList.remove('in');
+
+  const box = $('resultWheel');
+  box.innerHTML = buildWheel('?');
+  spinTo(box, WHEEL_ORDER.indexOf(topKey), () => {
+    box.querySelector('.center-txt').textContent = top.en.toUpperCase();
+    lightFam(box, top.fam);
+    setSubTheme(topKey);
+    $('rName').textContent = top.name;
+    $('rFam').textContent = `${FAMS[top.fam].name} ${FAMS[top.fam].en}`;
+    $('rKw').textContent = `${top.kw}　·　色彩印象：${SUB_THEMES[topKey][0]}`;
+    $('rScene').textContent = top.scene;
+    $('rSeason').textContent = top.season;
+    renderPerfumes(topKey);
+    renderBars(ratio, ranked, famShare);
+    $('revealBox').classList.add('in');
+    setTimeout(animateBars, 150);
+  });
+}
+
+// 輪盤轉動：越轉越慢，最後停在你的香調
+function spinTo(box, target, done) {
+  const n = WHEEL_ORDER.length;
+  const total = n * 2 + target;
+  let i = 0;
+  function tick() {
+    lightCell(box, i % n);
+    if (i >= total) { done(); return; }
+    const remain = total - i;
+    const delay = remain < 8 ? 60 + (8 - remain) * 45 : 45;
+    i++;
+    setTimeout(tick, delay);
+  }
+  tick();
+}
+
+function barRow(label, pct, lite) {
+  return `<div class="row"><span>${label}</span>
+    <div class="track"><div class="fill${lite ? ' lite' : ''}" data-w="${pct}"></div></div>
+    <span class="pct">${pct}%</span></div>`;
+}
+
+function renderBars(ratio, ranked, famShare) {
+  const famSorted = Object.keys(FAMS).sort((a, b) => famShare[b] - famShare[a]);
+  $('famBars').innerHTML = famSorted.map((fk, i) => barRow(FAMS[fk].name, famShare[fk], i > 0)).join('');
+  $('topBars').innerHTML = ranked.slice(0, 3).map((k, i) => barRow(SUBS[k].name, Math.round(ratio[k] * 100), i > 0)).join('');
+}
+
+function animateBars() {
+  document.querySelectorAll('.fill').forEach(el => el.style.width = el.dataset.w + '%');
+}
+
+// ===== 複製結果 =====
+function resultText() {
+  const { ratio, ranked, famShare, topKey } = lastResult;
+  const t = SUBS[topKey];
+  const famLine = Object.keys(FAMS).sort((a, b) => famShare[b] - famShare[a])
+    .map(fk => `${FAMS[fk].name} ${famShare[fk]}%`).join('、');
+  const topLine = ranked.slice(0, 3).map(k => `${SUBS[k].name} ${Math.round(ratio[k] * 100)}%`).join('、');
+  return `我的香調是「${FAMS[t.fam].name} · ${t.name}」！\n` +
+         `特色：${t.kw}\n` +
+         `四大類比例：${famLine}\n` +
+         `最接近的香調：${topLine}\n` +
+         `推薦場合：${t.scene}／推薦季節：${t.season}\n` +
+         `— 香調風格測驗 ${location.href}`;
+}
+
+function copyResult() {
+  const text = resultText();
+  const ok = () => {
+    const t = $('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1600);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(ok).catch(() => fallbackCopy(text, ok));
+  } else {
+    fallbackCopy(text, ok);
+  }
+}
+function fallbackCopy(text, ok) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); ok(); } catch (e) { alert(text); }
+  document.body.removeChild(ta);
+}
+
+// ===== 事件 =====
+$('startBtn').addEventListener('click', () => {
+  clearInterval(homeTimer);
+  setTheme(null);
+  current = 0;
+  answers = new Array(QUESTIONS.length).fill(null);
+  show('quiz');
+  renderQuestion();
+});
+
+$('backBtn').addEventListener('click', () => {
+  if (locked) return;
+  if (current === 0) { show('home'); startHomeWheel(); return; }
+  current--;
+  renderQuestion();
+});
+
+$('retryBtn').addEventListener('click', () => {
+  show('home');
+  startHomeWheel();
+});
+
+$('copyBtn').addEventListener('click', copyResult);
+
+startHomeWheel();
+</script>
+</body>
+</html>
